@@ -1,0 +1,46 @@
+%% One-Spatial Dimension Poisson Finite Elements
+clear; clc;
+xmin=0;
+xmax=1;
+npt=10000;
+x=linspace(xmin,xmax,npt)';
+f = @(x) 5*sin(2*pi*x.^10);
+boundary=0;
+%uniform partitions
+dx= x(2)-x(1);
+%create basis functions
+t = linspace(xmin,xmax,npt)';
+
+
+
+
+for j = 2:1:length(x)-2
+    prodfplus  = @(t) ((t-x(j-1))/dx)*f(x(j));
+   prodfminus = @(t) ((-t+x(j+1))/dx)*f(x(j));
+    
+    F=SimpsonRulef(prodfplus,x(j-1),x(j),length(x));
+    
+  G=SimpsonRulef(prodfminus,x(j),x(j+1),length(x));
+     
+      H= F+G;
+      
+      b(j,:)=H;
+      
+    
+end
+
+
+
+
+maindiag = 2*ones(npt-2,1);
+A = diag(maindiag);
+for j=1:npt-3
+   A(j,j+1) = -1;
+   A(j+1,j) = -1;
+end
+
+A = (1/dx)*A;
+uin= A\b; %coefficeint backslash vector
+u = [0;uin;0];
+plot(x,u)
+
