@@ -1,0 +1,76 @@
+%% 2D Poisson Finite Element Approximation with Uniform Triangularation on a Square Domain
+clear; clc;
+xmin = 0;
+xmax = 1;
+ymin = xmin;
+ymax = xmax;
+numintpt = 100;
+x = linspace(xmin,xmax,numintpt);
+dx = x(2)-x(1);
+y = linspace(ymin,ymax,numintpt);
+dy = dx;
+[x,y] = meshgrid(x,y);
+x=x';
+y=y';
+% Define f(x,y)
+f = @(x,y) 20*exp(-((x-.5).^2+(y-.5).^2)/0.05);
+%Build the coefficient matrix
+
+maindiag = 4*ones(numintpt-2,1);
+A = diag(maindiag);
+for j=1:numintpt-3
+   A(j,j+1) = -1;
+   A(j+1,j) = -1;
+end
+A = A*dx^2;
+% for j=1:numintpt-5
+%    A(j,j+3) = -1;
+%    A(j+3,j) = -1;
+% end
+
+
+%create basis functions
+t = linspace(xmin,xmax,numintpt)';
+w = linspace(ymin,ymax,numintpt)';
+
+counter=1; % I ADDED THIS IN
+for i=2:1:numintpt-1
+    for j=2:1:numintpt-1
+        
+        R1 = @(t,w) (1/dx)*((t-x(i,j))+(w-y(i,j))+1)*f(x(i,j),y(i,j));
+        R1line = @(t,w) -t+y(i,j)+x(i-1,j);
+        R2 = @(t,w) (1/dx)*((t-x(i,j))+1)*f(x(i,j),y(i,j));
+        R2R3line= @(t,w) -t+x(i-1,j)+y(i,j+1);
+        R3 = @(t,w) (-1/dx)*((w-y(i,j))+1)*f(x(i,j),y(i,j));
+        R4 = @(t,w) (-1/dx)*((t-x(i,j))+(w-y(i,j))+1)*f(x(i,j),y(i,j));
+        R4line = @(t,w) -t + y(i,j+1)+x(i,j);
+        R5 = @(t,w) (-1/dx)*((t-x(i,j))+1)*f(x(i,j),y(i,j));
+        R5R6line = @(t,w) -t +y(i,j)+x(i,j);
+        R6 = @(t,w) (1/dx)*((w-y(i,j))+1)*f(x(i,j),y(i,j));
+        
+       
+        R1int = integral2(R1,x(i-1,j),x(i,j),R1line,y(i,j));
+        R2int = integral2(R2,x(i-1,j),x(i,j),y(i,j),R2R3line);
+        R3int = integral2(R3,x(i-1,j),x(i,j),R2R3line,y(i,j+1));
+        R4int = integral2(R4,x(i,j),x(i+1,j),y(i,j),R4line);
+        R5int = integral2(R5,x(i,j),x(i+1,j),R5R6line,y(i,j));
+        R6int = integral2(R6,x(i,j),x(i+1,j),y(i,j-1),R5R6line);
+        
+        H=R1int+R2int+R3int+R4int+R5int+R6int;
+        
+        b(counter,1)=-H;
+        counter = counter+1;
+    end
+end
+b=reshape(b,numintpt-2,numintpt-2);
+uin=A\b;
+r = zeros(numintpt-2,1);
+o = zeros(numintpt,1)';
+utot = [r,uin,r];
+utot2 = [o;utot;o];
+figure
+subplot(1,2,1)
+surf(x,y,utot2)
+subplot(1,2,2)
+surf(x,y,f(x,y))
+norm(utot2-f(x,y))
