@@ -1,35 +1,52 @@
-%% 2D Poisson Finite Element Approximation with Uniform Triangularation on a Square Domain
-
-%Set up Domain
 clear; clc;
 xmin = 0;
 xmax = 1;
 ymin = xmin;
 ymax = xmax;
-numintpt = 20;
-x = linspace(xmin,xmax,numintpt);
+npt = 30;
+numintpt=npt;
+numintpts=npt;
+x = linspace(xmin,xmax,npt+2);
 dx = x(2)-x(1);
-y = linspace(ymin,ymax,numintpt);
-dy = dx;
+y = linspace(ymin,ymax,npt+2);
+dy = y(2)-y(1);
 [x,y] = meshgrid(x,y);
 x=x';
 y=y';
-% Define f(x,y)
 f = @(x,y) 20*exp(-((x-.5).^2+(y-.5).^2)/0.05);
+%Build A
 
-%Build the coefficient matrix
-maindiag = 4*ones(numintpt-2,1);
-A = diag(maindiag);
-for j=1:numintpt-3
-   A(j,j+1) = -1;
-   A(j+1,j) = -1;
+% Start by initializing the block structure of the stiffness matrix
+Z = zeros(numintpt,numintpt);
+for j=1:numintpt
+    for k=1:numintpt
+        C{j,k} = Z;
+    end
 end
+ 
+% Now build the main diagonal block
+maindiag = 4*ones(numintpt,1);
+B1 = diag(maindiag);
+for j=2:numintpt
+    B1(j-1,j)=-1;
+    B1(j,j-1)=-1;
+end
+ 
+% Next build the upper and lower blocks
+B2 = diag(-ones(numintpt,1));
+ 
+% Fill the cell array with the appropriate blocks
+for j=1:numintpt
+    C{j,j} = B1;
+end
+for j=2:numintpt
+    C{j-1,j}=B2;
+    C{j,j-1}=B2;
+end
+ 
+% build the matrix
+A = cell2mat(C);
 
-% for j=1:numintpt-5
-%    A(j,j+3) = -1;
-%    A(j+3,j) = -1;
-% end
-% 
 
 %create basis functions
 t = linspace(xmin,xmax,numintpt);
@@ -117,24 +134,23 @@ for i=2:1:numintpt-1
         
         H=R1int+R2int+R3int+R4int+R5int+R6int;
         
-        RHS(counter1,:)=H;
+RHS(i+1,j+1)=H;
         counter1 = counter1+1;
         counter2 = counter2+1;
     end
 end
 
-%Solve for interior solution
-RHS = reshape(RHS,numintpt-2,numintpt-2);
+RHS = reshape(RHS',npt^2,1);
+
 uint = A\RHS;
 
-%Boundaries-Dirichlet
-bound1 = zeros(numintpt-2,1);
-utot1 = [bound1,uint,bound1];
-bound2 = zeros(1,numintpt);
+uint = reshape(uint,npt,npt);
+
+
+bound1 = zeros(numintpt,1);
+utot1 = zeros(numintpt,numintpt+2);
+utot1(:,(2:end-1)) = uint;
+bound2 = zeros(1,numintpt+2);
 utot2 = [bound2;utot1;bound2];
 
-%plot it
-subplot(1,2,1)
 surf(x,y,utot2)
-subplot(1,2,2)
-surf(x,y,f(x,y))
