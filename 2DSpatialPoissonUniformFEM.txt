@@ -1,9 +1,10 @@
-clear; clc;
+% clear; clc;
 xmin = 0;
 xmax = 1;
 ymin = xmin;
 ymax = xmax;
-npt = 30;
+N=30;
+npt = N;
 numintpt=npt;
 numintpts=npt;
 x = linspace(xmin,xmax,npt+2);
@@ -13,7 +14,7 @@ dy = y(2)-y(1);
 [x,y] = meshgrid(x,y);
 x=x';
 y=y';
-f = @(x,y) 20*exp(-((x-.5).^2+(y-.5).^2)/0.05);
+ f = @(x,y) 20*exp(-((x-.5).^2+(y-.5).^2)/0.05);
 %Build A
 
 % Start by initializing the block structure of the stiffness matrix
@@ -51,10 +52,17 @@ A = cell2mat(C);
 %create basis functions
 t = linspace(xmin,xmax,numintpt);
 w = linspace(ymin,ymax,numintpt);
-counter1=1; % I ADDED THIS IN
-counter2=1;
-for i=2:1:numintpt-1
-    for j=2:1:numintpt-1
+RHS = zeros(npt,npt);
+% counter1=1; % I ADDED THIS IN
+% counter2=1;
+% [xx,yy] = meshgrid(linspace(xmin+dx,xmax-dx,npt) , ... 
+%     linspace(ymin+dy,ymax-dy,npt));
+% xxtemp = xx; yytemp = yy;
+% xtemp = x; ytemp = y;
+% xx = xtemp; yy = ytemp;
+% x = xxtemp; y = yytemp;
+for i=2:1:numintpt+1
+    for j=2:1:numintpt+1
         
         %Region 1
         PQ1 = [x(i-1,j)-x(i,j);y(i-1,j)-y(i,j);-1];
@@ -134,9 +142,9 @@ for i=2:1:numintpt-1
         
         H=R1int+R2int+R3int+R4int+R5int+R6int;
         
-RHS(i+1,j+1)=H;
-        counter1 = counter1+1;
-        counter2 = counter2+1;
+        RHS(i-1,j-1)=H;
+%         counter1 = counter1+1;
+%         counter2 = counter2+1;
     end
 end
 
@@ -154,3 +162,6 @@ bound2 = zeros(1,numintpt+2);
 utot2 = [bound2;utot1;bound2];
 
 surf(x,y,utot2)
+title('Jordan F.E.M. Solution')
+box on
+grid on
